@@ -1,0 +1,6 @@
+*.o
+junk
+.gdb_history
+
+deatr
+hello
