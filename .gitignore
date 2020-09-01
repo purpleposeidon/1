@@ -1,4 +1,5 @@
 *.o
+*.a
 junk
 .gdb_history
 
