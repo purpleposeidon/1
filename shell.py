@@ -11,6 +11,9 @@ a = ['./hello', 'hello']
 b = ['./deatr', 'deatr']
 
 
+print("+ {0} ⊢ {1}".format(' '.join(a[1:]), ' '.join(b[1:])))
+
+
 pipe_rw = socket.socketpair(family=socket.AF_UNIX, type=socket.SOCK_SEQPACKET, proto=0)
 pipe_r = pipe_rw[0].fileno()
 pipe_w = pipe_rw[1].fileno() # gc = close
