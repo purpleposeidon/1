@@ -1,7 +1,7 @@
 CFLAGS = -I ./ -std=c99 -g -Wall
 
 
-all: hello deatr
+all: hello deatr lib1.a
 
 1.0: 1.h 1.c
 	$(CC) -$< -o $@
@@ -24,11 +24,12 @@ ifeq ($(PREFIX),)
     PREFIX := /usr/local
 endif
 
-1.a: 1.o
-	ar -q 1.a 1.o
+lib1.a: 1.o
+	ar -q lib1.a 1.o
 
-install: 1.h 1.a
+install: 1.h lib1.a
 	install -d $(DESTDIR)$(PREFIX)/lib/
 	install -d $(DESTDIR)$(PREFIX)/include/
-	install -m 644 1.a $(DESTDIR)$(PREFIX)/lib/
-	install -m 644 1.h $(DESTDIR)$(PREFIX)/include/
+	install lib1.a $(DESTDIR)$(PREFIX)/lib/
+	install 1.h $(DESTDIR)$(PREFIX)/include/
+	ldconfig
