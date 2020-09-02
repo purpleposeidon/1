@@ -30,8 +30,10 @@ install: 1.h lib1.a
 	install -d $(DESTDIR)$(PREFIX)/include/
 	install lib1.a $(DESTDIR)$(PREFIX)/lib/
 	install 1.h $(DESTDIR)$(PREFIX)/include/
+	install 1forbidstd.h $(DESTDIR)$(PREFIX)/include/
 	ldconfig
 
 uninstall:
 	rm $(DESTDIR)$(PREFIX)/lib/lib1.a
 	rm $(DESTDIR)$(PREFIX)/include/1.h
+	rm $(DESTDIR)$(PREFIX)/include/1forbidstd.h
