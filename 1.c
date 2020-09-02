@@ -1,8 +1,10 @@
+#define _GNU_SOURCE
 #define _POSIX_C_SOURCE 200809L
 
 #include <stdbool.h>
 #include <stdlib.h>
 #include <string.h>
+#include <assert.h>
 
 #include <unistd.h>
 #include <sys/socket.h>
@@ -226,3 +228,93 @@ ssize_t l1_putchar(char t, char c) {
     p.msg = &msg[0];
     return l1_write(&l1_atrout, &p);
 }
+
+ssize_t l1_puts(char t, const char *msg) {
+    struct l1_packet p = {
+        .len = strlen(msg),
+        .msg = (char *) msg,
+    };
+    return l1_write(&l1_atrout, &p);
+}
+
+#ifdef __GLIBC__
+#include <printf.h>
+
+#ifndef N_PCUTS
+#define N_PCUTS 20
+#endif
+static int pcuti = 0;
+static long pcuts[N_PCUTS];
+
+static int l1_print_packet(
+        FILE *stream,
+        const struct printf_info *info,
+        const void *const *args
+) {
+    if (info->width == 1 && info->left == 1) {
+        pcuts[pcuti++] = ftell(stream);
+        assert(pcuti < N_PCUTS);
+        return 0;
+        // This return value is weird.
+        // As far as printf is concerned, 0 makes sense.
+        // But %1m is always followed by a 1-byte packet header,
+        // which isn't properly part of the output.
+        // So actually a negative length would make sense!
+        // But -1 is used to reject the format specifier.
+        // It'd be nice if I could do `info->nbytes -= 1`.
+    }
+    return -1;
+}
+static int l1_print_packet_arginfo(
+        const struct printf_info *info,
+        size_t n,
+        int *argtypes,
+        int *size
+) {
+    if (info->width == 1 && info->left == 1) {
+        return 0;
+    }
+    return -1;
+}
+
+ssize_t l1_printp(const char *fmt, ...) {
+    {
+        static bool setup = false;
+        if (!setup) {
+            setup = true;
+            register_printf_specifier('m', l1_print_packet, l1_print_packet_arginfo);
+        }
+    }
+    if (strstr(fmt, L1_PFMT("")) != fmt) {
+        fprintf(stderr, "l1_printp: format string must start with L1_P*");
+        abort();
+    }
+    size_t pp_size = 0;
+    char *buf = NULL;
+    pcuti = 0;
+    FILE *f = open_memstream(&buf, &pp_size);
+
+    va_list ap;
+    va_start(ap, fmt);
+    int ret = vfprintf(f, fmt, ap);
+    pcuts[pcuti] = ftell(f);
+    fclose(f);
+
+    for (int i = 0; i < pcuti; i++) {
+        long start = pcuts[i];
+        long end = pcuts[i + 1];
+        long len = end - start;
+        struct l1_packet p = {
+            .msg = &buf[start],
+            .len = len,
+        };
+        l1_write(&l1_atrout, &p);
+    }
+
+    va_end(ap);
+    free(buf);
+    pcuti = 0;
+    return ret;
+}
+
+#endif

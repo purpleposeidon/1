@@ -56,6 +56,8 @@ char *l1_packet_msg(const struct l1_packet *p);
 #define L1_FIELD_TEXT     '>'
 #define L1_FORMAT         '-'
 #define L1_COMMENT        '_'
+#define L1_LABEL          '*'
+
 
 typedef signed long long l1_entity; // FIXME: how to i64 I know you can do this how does it done.
 
@@ -97,5 +99,61 @@ ssize_t l1_read(struct l1_atr *atr, struct l1_packet *dst);
 
 
 ssize_t l1_putchar(char t, char c);
+ssize_t l1_puts(char t, const char *msg);
+
+
+// FIXME: Only if `register_printf_specifier` is available
+//#include <features.h>
+//#if defined _GNU_SOURCE && defined __GLIBC__
+
+#define L1_PFMT(x)        "%-1m" x
+#define L1_P              L1_PFMT("%c")
+#define L1_PPUSH          L1_PFMT("(")
+#define L1_PPOP           L1_PFMT(")")
+#define L1_PFIELD_NAME    L1_PFMT("$")
+#define L1_PFIELD_TYPE    L1_PFMT(":")
+#define L1_PFIELD_VALUE   L1_PFMT("=")
+#define L1_PFIELD_TEXT    L1_PFMT(">")
+#define L1_PFORMAT        L1_PFMT("-")
+#define L1_PCOMMENT       L1_PFMT("_")
+#define L1_PLABEL         L1_PFMT("*")
+// printf with packet separation formatting codes.
+// Use the L1_P* class of macros to indicate packet separation boundaries.
+// The format string must start with an L1_P*.
+//
+// The L1_P format string macro can be used to set the packet's type dynamically;it takes the packet type as a format argument.
+//
+// Example:
+//   l1_printp(
+//      L1_PFORMAT "Hello, %s!"
+//      L1_P       "Uhm, %s to meet you",
+//      "world",
+//      L1_FIELD_VALUE, "cheesed"
+//   );
+//
+// %n probably doesn't have the greatest definition. Right now it includes the packet header; it would make much more sense for it to not.
+// Perhaps it will in the future.
+// You can use the L1_ADJUST_PERCENT_N macro to fix this.
+//
+//   int n;
+//   l1_printp(
+//       L1_PFORMAT "Hello world"
+//       L1_PFORMAT "I'm very worried about padding: %n",
+//       &n
+//   );
+//   n = adjust_padding(n,
+//         1 // packet 'Hello...'
+//       + 1 // packet 'I'm very...'
+//   );
+//
+//
+// Note that _GNU_SOURCE is required as this uses glibc's printf formatter registration.
+// "%-1m" is the format code used; it is unlikely that this will be a problem for you.
+ssize_t l1_printp(const char *fmt, ...);
+
+#define L1_ADJUST_PERCENT_N(number_of_bytes, prior_packets) (n - prior_packets)
+
+//#endif
+
 
 #endif
