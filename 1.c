@@ -40,6 +40,14 @@ struct l1_atr l1_connect_reader(int fd) {
 struct l1_atr l1_connect_writer(int fd) {
     return l1_connect_reader(fd);
 }
+struct l1_atr l1_conect_std(int fd) {
+    struct l1_atr ret = {
+        .fd = fd,
+        .protocol_version = protocol_version,
+        .status = L1_ATR_STATUS_STD,
+    };
+    return ret;
+}
 
 void l1_init() {
     l1_init_lib();
@@ -208,4 +216,13 @@ ssize_t l1_read(struct l1_atr *atr, struct l1_packet *dst) {
     dst->len = n;
     dst->msg = msg;
     return n;
+}
+
+
+ssize_t l1_putchar(char t, char c) {
+    struct l1_packet p;
+    p.len = 2;
+    char msg[2] = {t, c};
+    p.msg = &msg[0];
+    return l1_write(&l1_atrout, &p);
 }

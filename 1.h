@@ -20,6 +20,7 @@ struct l1_atr {
 
 struct l1_atr l1_connect_reader(int fd);
 struct l1_atr l1_connect_writer(int fd);
+struct l1_atr l1_conect_std(int fd);
 
 struct l1_atr l1_atrin;
 struct l1_atr l1_atrout;
@@ -92,5 +93,9 @@ void l1_comment(const char *comment);
 //     [)1]
 
 ssize_t l1_read(struct l1_atr *atr, struct l1_packet *dst);
+
+
+
+ssize_t l1_putchar(char t, char c);
 
 #endif
