@@ -82,7 +82,6 @@ void l1_init_lib() {
 void l1_init_atr() {
     l1_atrin = l1_connect_reader(STDIN_FILENO);
     l1_atrout = l1_connect_writer(STDOUT_FILENO);
-    l1_atrerr = l1_connect_writer(STDERR_FILENO);
 }
 
 

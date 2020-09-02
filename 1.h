@@ -23,7 +23,6 @@ struct l1_atr l1_connect_writer(int fd);
 
 struct l1_atr l1_atrin;
 struct l1_atr l1_atrout;
-struct l1_atr l1_atrerr;
 
 void l1_init();
 void l1_init_lib();
