@@ -237,6 +237,11 @@ ssize_t l1_puts(char t, const char *msg) {
     return l1_write(&l1_atrout, &p);
 }
 
+int l1_flush(struct l1_atr *atr) {
+    // We have no buffering!
+    return 0;
+}
+
 #ifdef __GLIBC__
 #include <printf.h>
 

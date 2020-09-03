@@ -101,6 +101,7 @@ ssize_t l1_read(struct l1_atr *atr, struct l1_packet *dst);
 ssize_t l1_putchar(char t, char c);
 ssize_t l1_puts(char t, const char *msg);
 
+int l1_flush(struct l1_atr *atr);
 
 // FIXME: Only if `register_printf_specifier` is available
 //#include <features.h>
