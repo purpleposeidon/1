@@ -28,7 +28,7 @@
 #undef stdout
 #undef puts
 #define stdout         L1_FORBID("GCC error \"<1forbidstd.h>: usage of stdout\"")
-#define STDOUT_FILENO  L1_FORBID("GCC error \"<1forbidstd.h>: usage of STDOUT_FIELNO\"")
+#define STDOUT_FILENO  L1_FORBID("GCC error \"<1forbidstd.h>: usage of STDOUT_FILENO\"")
 #define printf(...)    L1_FORBID("GCC error \"<1forbidstd.h>: usage of printf\"")
 #define vprintf(...)   L1_FORBID("GCC error \"<1forbidstd.h>: usage of vprintf\"")
 #define putchar(_x)    L1_FORBID("GCC error \"<1forbidstd.h>: usage of putchar\"")
@@ -38,7 +38,7 @@
 #if L1_ALLOW_STDERR == 0
 #undef stderr
 #define stderr         L1_FORBID("GCC error \"<1forbidstd.h>: usage of stderr\"")
-#define STDERR_FILENO  L1_FORBID("GCC error \"<1forbidstd.h>: usage of STDERR_FIELNO\"")
+#define STDERR_FILENO  L1_FORBID("GCC error \"<1forbidstd.h>: usage of STDERR_FILENO\"")
 #define perror(_x)     L1_FORBID("GCC error \"<1forbidstd.h>: usage of perror\"")
 #endif
 
