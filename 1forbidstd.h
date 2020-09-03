@@ -22,32 +22,34 @@
 
 // Functions like fprintf that take a FILE *stream are okay; instead deny access to stdout.
 
+#define L1_FORBID(x)   do { _Pragma(x); } while (0)
+
 #if L1_ALLOW_STDOUT == 0
 #undef stdout
 #undef puts
-#define stdout         _Pragma("GCC error \"<1forbidstd.h>: usage of stdout\"")
-#define STDOUT_FILENO  _Pragma("GCC error \"<1forbidstd.h>: usage of STDOUT_FIELNO\"")
-#define printf(...)    _Pragma("GCC error \"<1forbidstd.h>: usage of printf\"")
-#define vprintf(...)   _Pragma("GCC error \"<1forbidstd.h>: usage of vprintf\"")
-#define putchar(_x)    _Pragma("GCC error \"<1forbidstd.h>: usage of putchar\"")
-#define puts(_x)       _Pragma("GCC error \"<1forbidstd.h>: usage of puts\"")
+#define stdout         L1_FORBID("GCC error \"<1forbidstd.h>: usage of stdout\"")
+#define STDOUT_FILENO  L1_FORBID("GCC error \"<1forbidstd.h>: usage of STDOUT_FIELNO\"")
+#define printf(...)    L1_FORBID("GCC error \"<1forbidstd.h>: usage of printf\"")
+#define vprintf(...)   L1_FORBID("GCC error \"<1forbidstd.h>: usage of vprintf\"")
+#define putchar(_x)    L1_FORBID("GCC error \"<1forbidstd.h>: usage of putchar\"")
+#define puts(_x)       L1_FORBID("GCC error \"<1forbidstd.h>: usage of puts\"")
 #endif
 
 #if L1_ALLOW_STDERR == 0
 #undef stderr
-#define stderr         _Pragma("GCC error \"<1forbidstd.h>: usage of stderr\"")
-#define STDERR_FILENO  _Pragma("GCC error \"<1forbidstd.h>: usage of STDERR_FIELNO\"")
-#define perror(_x)     _Pragma("GCC error \"<1forbidstd.h>: usage of perror\"")
+#define stderr         L1_FORBID("GCC error \"<1forbidstd.h>: usage of stderr\"")
+#define STDERR_FILENO  L1_FORBID("GCC error \"<1forbidstd.h>: usage of STDERR_FIELNO\"")
+#define perror(_x)     L1_FORBID("GCC error \"<1forbidstd.h>: usage of perror\"")
 #endif
 
 #if L1_ALLOW_STDIN == 0
 #undef stdin
 #undef getc
-#define stdin          _Pragma("GCC error \"<1forbidstd.h>: usage of stdin\"")
-#define getc(_x)       _Pragma("GCC error \"<1forbidstd.h>: usage of getc\"")
-#define getchar()      _Pragma("GCC error \"<1forbidstd.h>: usage of getchar\"")
-#define scanf(...)     _Pragma("GCC error \"<1forbidstd.h>: usage of scanf\"")
-#define vscanf(...)    _Pragma("GCC error \"<1forbidstd.h>: usage of vscanf\"")
+#define stdin          L1_FORBID("GCC error \"<1forbidstd.h>: usage of stdin\"")
+#define getc(_x)       L1_FORBID("GCC error \"<1forbidstd.h>: usage of getc\"")
+#define getchar()      L1_FORBID("GCC error \"<1forbidstd.h>: usage of getchar\"")
+#define scanf(...)     L1_FORBID("GCC error \"<1forbidstd.h>: usage of scanf\"")
+#define vscanf(...)    L1_FORBID("GCC error \"<1forbidstd.h>: usage of vscanf\"")
 #endif
 
 #endif
