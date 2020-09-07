@@ -43,11 +43,24 @@ struct l1_packet l1_packetf(char t, const char *fmt, ...);
 void l1_vfwritef(struct l1_atr *atr, char t, const char *fmt, va_list ap);
 void l1_fwritef(struct l1_atr *atr, char t, const char *fmt, ...);
 
+// &'a p -> struct li_packet<'b>
 struct l1_packet l1_clone_packet(struct l1_packet *p);
 void l1_drop_packet(struct l1_packet p);
 
+// The lifetime is
+//     &'m msg -> struct li_packet<'p>
+// So you will need to call l1_drop_packet.
+struct l1_packet l1_new_packet(char t, const char *msg, size_t len);
+// Construct a packet, using the existing msg buffer.
+// Unlike constructing a struct l1_packet manually, additional checks are performed.
+// The lifetime is
+//     &'a msg -> struct li_packet<'a>
+struct l1_packet l1_new_hpacket(const char *msg, size_t len);
+
 char l1_packet_type(const struct l1_packet *p);
+// &'a mut p -> &'a mut char
 char *l1_packet_msg(const struct l1_packet *p);
+// See other EACH_L1_HEADER_TYPE
 #define L1_PUSH           '('
 #define L1_POP            ')'
 #define L1_FIELD_NAME     '$'
@@ -58,17 +71,22 @@ char *l1_packet_msg(const struct l1_packet *p);
 #define L1_COMMENT        '_'
 #define L1_LABEL          '*'
 
+bool l1_known_packet_type(char t);
+bool l1_std_visible(char t);
+
 
 typedef signed long long l1_entity; // FIXME: how to i64 I know you can do this how does it done.
 
-void l1_push(l1_entity entity);
-void l1_pop(l1_entity entity);
-void l1_field_name(const char *field_name);
-void l1_field_type(const char *field_type);
-void l1_field_value(const char *field_value);
-void l1_field_text(const char *field_text);
-void l1_format(const char *formatting);
-void l1_comment(const char *comment);
+// See other EACH_L1_HEADER_TYPE
+void l1_push         (l1_entity          entity);
+void l1_pop          (l1_entity          entity);
+void l1_field_name   (const char *   field_name);
+void l1_field_type   (const char *   field_type);
+void l1_field_value  (const char *  field_value);
+void l1_field_text   (const char *   field_text);
+void l1_format       (const char *   formatting);
+void l1_comment      (const char *      comment);
+
 
 // so ls might output something like...
 //     [     ][(1][$filename][:uri][=file:///etc/passwd][␤passwd][)1][ ␤]
@@ -108,6 +126,7 @@ int l1_flush(struct l1_atr *atr);
 //#if defined _GNU_SOURCE && defined __GLIBC__
 
 #define L1_PFMT(x)        "%-1m" x
+// See other EACH_L1_HEADER_TYPE
 #define L1_P              L1_PFMT("%c")
 #define L1_PPUSH          L1_PFMT("(")
 #define L1_PPOP           L1_PFMT(")")
@@ -118,11 +137,12 @@ int l1_flush(struct l1_atr *atr);
 #define L1_PFORMAT        L1_PFMT("-")
 #define L1_PCOMMENT       L1_PFMT("_")
 #define L1_PLABEL         L1_PFMT("*")
+
 // printf with packet separation formatting codes.
 // Use the L1_P* class of macros to indicate packet separation boundaries.
 // The format string must start with an L1_P*.
 //
-// The L1_P format string macro can be used to set the packet's type dynamically;it takes the packet type as a format argument.
+// The L1_P format string macro can be used to set the packet's type dynamically; it takes the packet type as a format argument.
 //
 // Example:
 //   l1_printp(
@@ -132,7 +152,7 @@ int l1_flush(struct l1_atr *atr);
 //      L1_FIELD_VALUE, "cheesed"
 //   );
 //
-// %n probably doesn't have the greatest definition. Right now it includes the packet header; it would make much more sense for it to not.
+// %n probably doesn't have good behavior. Right now it includes the packet header; it would make much more sense for it to not.
 // Perhaps it will in the future.
 // You can use the L1_ADJUST_PERCENT_N macro to fix this.
 //
@@ -150,6 +170,8 @@ int l1_flush(struct l1_atr *atr);
 //
 // Note that _GNU_SOURCE is required as this uses glibc's printf formatter registration.
 // "%-1m" is the format code used; it is unlikely that this will be a problem for you.
+//
+// Returns the number of std_visible characters written, or something negative on error.
 ssize_t l1_printp(const char *fmt, ...);
 
 #define L1_ADJUST_PERCENT_N(number_of_bytes, prior_packets) (n - prior_packets)

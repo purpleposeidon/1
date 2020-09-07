@@ -95,11 +95,13 @@ void l1_init_atr() {
 }
 
 
-bool std_visible(char t) {
+bool l1_std_visible(char t) {
     switch (t) {
-        case L1_FIELD_VALUE:
+        // See other EACH_L1_HEADER_TYPE
         case L1_FIELD_TEXT:
         case L1_FORMAT:
+        case L1_LABEL:
+        case '?': // FIXME
             return true;
         default: return false;
     }
@@ -115,6 +117,56 @@ struct l1_packet l1_clone_packet(struct l1_packet *p) {
 void l1_drop_packet(struct l1_packet p) {
     free(p.msg);
 }
+bool l1_known_packet_type(char t) {
+    switch (t) {
+        // See other EACH_L1_HEADER_TYPE
+        case L1_PUSH:
+        case L1_POP:
+        case L1_FIELD_NAME:
+        case L1_FIELD_TYPE:
+        case L1_FIELD_VALUE:
+        case L1_FIELD_TEXT:
+        case L1_FORMAT:
+        case L1_COMMENT:
+        case L1_LABEL:
+            return true;
+        default:
+            return false;
+    }
+}
+struct l1_packet l1_new_packet(char t, const char *msg, size_t len) {
+    if (len == 0) {
+        fprintf(stderr, "empty packet\n");
+        abort();
+    }
+    char *buf = malloc(len + 1);
+    buf[0] = t;
+    memcpy(&buf[1], msg, len);
+    struct l1_packet ret = {
+        .msg = buf,
+        .len = len + 1,
+    };
+    return ret;
+}
+struct l1_packet l1_new_hpacket(const char *msg, size_t len) {
+    if (len == 0) {
+        fprintf(stderr, "no packet header\n");
+        abort();
+    }
+    if (len <= 1) {
+        fprintf(stderr, "empty packet\n");
+        abort();
+    }
+    if (!l1_known_packet_type(msg[0])) {
+        fprintf(stderr, "unknown packet type");
+        abort();
+    }
+    struct l1_packet ret = {
+        .msg = (char *)msg,
+        .len = len,
+    };
+    return ret;
+}
 
 ssize_t l1_write(struct l1_atr *atr, struct l1_packet *packet) {
     // FIXME: sendmmsg(2) may be worth looking into
@@ -126,8 +178,8 @@ ssize_t l1_write(struct l1_atr *atr, struct l1_packet *packet) {
         fprintf(stderr, "l1_atr uninitialized\n");
         abort();
     } else if (atr->status == L1_ATR_STATUS_STD) {
-        if (!std_visible(packet->msg[0])) { return 0; }
-        return write(atr->fd, &packet->msg[1], packet->len);
+        if (!l1_std_visible(packet->msg[0])) { return 0; }
+        return write(atr->fd, &packet->msg[1], packet->len - 1);
     } else {
         return write(atr->fd, packet->msg, packet->len);
     }
@@ -173,30 +225,15 @@ void l1_printf(char t, const char *fmt, ...) {
 char l1_packet_type(const struct l1_packet *p) { return p->msg[0]; }
 char *l1_packet_msg(const struct l1_packet *p) { return &p->msg[1]; }
 
-void l1_push(l1_entity entity) {
-    l1_printf(L1_PUSH, "%i", entity);
-}
-void l1_pop(l1_entity entity) {
-    l1_printf(L1_POP, "%i", entity);
-}
-void l1_field_name(const char *field_name) {
-    l1_printf(L1_FIELD_NAME, "%s", field_name);
-}
-void l1_field_type(const char *field_type) {
-    l1_printf(L1_FIELD_TYPE, "%s", field_type);
-}
-void l1_field_value(const char *field_value) {
-    l1_printf(L1_FIELD_VALUE, "%s", field_value);
-}
-void l1_field_text(const char *field_text) {
-    l1_printf(L1_FIELD_TEXT, "%s", field_text);
-}
-void l1_format(const char *formatting) {
-    l1_printf(L1_FORMAT, "%s", formatting);
-}
-void l1_comment(const char *comment) {
-    l1_printf(L1_COMMENT, "%s", comment);
-}
+// See other EACH_L1_HEADER_TYPE
+void l1_push         (l1_entity          entity) { l1_printf(L1_PUSH,          "%i", entity      ); }
+void l1_pop          (l1_entity          entity) { l1_printf(L1_POP,           "%i", entity      ); }
+void l1_field_name   (const char *   field_name) { l1_printf(L1_FIELD_NAME,    "%s", field_name  ); }
+void l1_field_type   (const char *   field_type) { l1_printf(L1_FIELD_TYPE,    "%s", field_type  ); }
+void l1_field_value  (const char *  field_value) { l1_printf(L1_FIELD_VALUE,   "%s", field_value ); }
+void l1_field_text   (const char *   field_text) { l1_printf(L1_FIELD_TEXT,    "%s", field_text  ); }
+void l1_format       (const char *   formatting) { l1_printf(L1_FORMAT,        "%s", formatting  ); }
+void l1_comment      (const char *      comment) { l1_printf(L1_COMMENT,       "%s", comment     ); }
 
 
 
@@ -230,11 +267,11 @@ ssize_t l1_putchar(char t, char c) {
 }
 
 ssize_t l1_puts(char t, const char *msg) {
-    struct l1_packet p = {
-        .len = strlen(msg),
-        .msg = (char *) msg,
-    };
-    return l1_write(&l1_atrout, &p);
+    struct l1_packet p = l1_new_packet(t, msg, strlen(msg));
+    // FIXME: iovec
+    ssize_t ret = l1_write(&l1_atrout, &p);
+    l1_drop_packet(p);
+    return ret;
 }
 
 int l1_flush(struct l1_atr *atr) {
@@ -305,6 +342,7 @@ ssize_t l1_printp(const char *fmt, ...) {
     pcuts[pcuti] = ftell(f);
     fclose(f);
 
+    ssize_t stdlen = 0;
     for (int i = 0; i < pcuti; i++) {
         long start = pcuts[i];
         long end = pcuts[i + 1];
@@ -313,13 +351,35 @@ ssize_t l1_printp(const char *fmt, ...) {
             .msg = &buf[start],
             .len = len,
         };
-        l1_write(&l1_atrout, &p);
+        ssize_t err = l1_write(&l1_atrout, &p);
+        if (err < 0) {
+            return err;
+        }
+        if (l1_std_visible(p.msg[0])) {
+            stdlen += len - 1;
+        }
     }
 
     va_end(ap);
     free(buf);
     pcuti = 0;
-    return ret;
+    if (ret < 0) {
+        return ret;
+    } else {
+        return stdlen;
+    }
 }
-
 #endif
+
+// FIXME: printf("%*s", width, thing) is pretty common, at least in ls.
+/*
+void l1_print_field(
+        conar char *prefix,
+        const char *name,
+        const char *value, // nullable
+        const char *text,
+        int width,
+        conar char *suffix,
+) {
+}
+*/
