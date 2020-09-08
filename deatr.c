@@ -16,6 +16,7 @@ int main(int argc, char **argv) {
         ssize_t err = l1_read(&l1_atrin, &msg);
         if (err <= 0) {
             printf("\n");
+            l1_drop_packet(msg);
             return -1;
         }
         char pt = l1_packet_type(&msg);
@@ -23,23 +24,26 @@ int main(int argc, char **argv) {
         switch (pt) {
             case L1_PUSH:
             case L1_POP:
-                printf("\x1b[36m\x1b[1m%c\x1b[0m\x1b[36m%s\x1b[0m", pt, rest);
+                printf("\x1b[36m\x1b[1m%c\x1b[0m\x1b[36m", pt);
                 break;
             case L1_FIELD_NAME:
             case L1_FIELD_TYPE:
-                printf("\x1b[35m\x1b[1m%c\x1b[0m\x1b[35m%s\x1b[0m", pt, rest);
+                printf("\x1b[35m\x1b[1m%c\x1b[0m\x1b[35m", pt);
                 break;
             case L1_FIELD_VALUE:
             case L1_FIELD_TEXT:
-                printf("\x1b[32m\x1b[1m%c\x1b[0m\x1b[32m%s\x1b[0m", pt, rest);
+                printf("\x1b[32m\x1b[1m%c\x1b[0m\x1b[32m", pt);
                 break;
             case L1_FORMAT:
             case L1_COMMENT:
-                printf("\x1b[34m\x1b[1m%c\x1b[0m\x1b[34m%s\x1b[0m", pt, rest);
+                printf("\x1b[34m\x1b[1m%c\x1b[0m\x1b[34m", pt);
                 break;
             default:
-                printf("\x1b[31m\x1b[1m%c\x1b[0m\x1b[31m%s\x1b[0m", pt, &msg.msg[1]);
+                printf("\x1b[31m\x1b[1m%c\x1b[0m\x1b[31m", pt);
                 break;
         }
+        fwrite(rest, sizeof(char), msg.len - 1, stdout);
+        printf("\x1b[0m");
+        l1_drop_packet(msg);
     }
 }
