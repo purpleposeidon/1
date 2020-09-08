@@ -7,6 +7,7 @@
 #include <stdio.h>
 #include <stdarg.h>
 #include <sys/types.h>
+#include <stdbool.h>
 
 
 struct l1_atr {

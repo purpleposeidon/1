@@ -85,7 +85,7 @@ void l1_init_lib() {
         } else if (protocol_version == 0) {
             // env var set: act atr
         } else {
-            fprintf(stderr, "lib1: Can't handle protocol version %i\n", protocol_version);
+            fprintf(stderr, "l1_init_lib: Can't handle protocol version %i\n", protocol_version);
         }
     }
 }
@@ -136,7 +136,7 @@ bool l1_known_packet_type(char t) {
 }
 struct l1_packet l1_new_packet(char t, const char *msg, size_t len) {
     if (len == 0) {
-        fprintf(stderr, "empty packet\n");
+        fprintf(stderr, "l1_new_packet: empty packet\n");
         abort();
     }
     char *buf = malloc(len + 1);
@@ -150,15 +150,15 @@ struct l1_packet l1_new_packet(char t, const char *msg, size_t len) {
 }
 struct l1_packet l1_new_hpacket(const char *msg, size_t len) {
     if (len == 0) {
-        fprintf(stderr, "no packet header\n");
+        fprintf(stderr, "l1_new_hpacket: no packet header\n");
         abort();
     }
     if (len <= 1) {
-        fprintf(stderr, "empty packet\n");
+        fprintf(stderr, "l1_new_hpacket: empty packet\n");
         abort();
     }
     if (!l1_known_packet_type(msg[0])) {
-        fprintf(stderr, "unknown packet type");
+        fprintf(stderr, "l1_new_hpacket: unknown packet type\n");
         abort();
     }
     struct l1_packet ret = {
@@ -171,11 +171,11 @@ struct l1_packet l1_new_hpacket(const char *msg, size_t len) {
 ssize_t l1_write(struct l1_atr *atr, struct l1_packet *packet) {
     // FIXME: sendmmsg(2) may be worth looking into
     if (packet->len <= 1) {
-        fprintf(stderr, "empty packet\n");
+        fprintf(stderr, "l1_write: empty packet\n");
         abort();
     }
     if (atr->status == L1_ATR_STATUS_UNKNOWN) {
-        fprintf(stderr, "l1_atr uninitialized\n");
+        fprintf(stderr, "l1_write: l1_atr uninitialized\n");
         abort();
     } else if (atr->status == L1_ATR_STATUS_STD) {
         if (!l1_std_visible(packet->msg[0])) { return 0; }
@@ -328,7 +328,7 @@ ssize_t l1_printp(const char *fmt, ...) {
         }
     }
     if (strstr(fmt, L1_PFMT("")) != fmt) {
-        fprintf(stderr, "l1_printp: format string must start with L1_P*");
+        fprintf(stderr, "l1_printp: format string must start with L1_P*\n");
         abort();
     }
     size_t pp_size = 0;
