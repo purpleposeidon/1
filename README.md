@@ -219,7 +219,7 @@ This is unworkable because an infinite number of hidden atr packets may be produ
 
 
 ## Why not do this in userspace?
-Because it's [mathematically impossible](wikipedia:Two General's Problem). Consensus can't be reached without guaranteed message receipts —
+Because it's [mathematically impossible](https://en.wikipedia.org/wiki/Two_Generals%27_Problem). Consensus can't be reached without guaranteed message receipts —
 to mutually understand we both speak atr, or that I speak atr but you speak std.
 Trying to do this in userspace would result in something complicated, wrong, fragile, and/or insane. (fuse, flock, strace)
 
@@ -231,7 +231,9 @@ Because the other end can't be assumed to know how to handle escape codes, and w
 Also, a std program might print them unwittingly.
 
 ## Why not add a switch `-1` to all programs to enable atr?
-You mean like, cause a thousand years of "oops, I forgot to add the... *<up><home><right-right-right-right><space>-1<enter>* oh wait it's ls which already had a -1, so actually it's..."?
+You mean like, cause a thousand years of
+
+    oops, I forgot to add the... *<up><home><right-right-right-right><space>-1<enter>* oh wait it's ls which already had a -1, so actually it's...
 
 I would prefer not to.
 
@@ -240,7 +242,7 @@ Doesn't work with mixed programs like ssh or shell scripts.
 
 ## Why not write escape codes to the terminal, when `stdout` `isatty`?
 Because more than one process can be writing at a time.
-Also being able to distinguish who wrote what is a (useful property)[https://github.com/tene/weaver].
+Also being able to distinguish who wrote what is a [useful property](https://github.com/tene/weaver).
 Additionally, the string written to the terminal is not necessarily what the terminal reads, because of "line discipline".
 Best of all, `wall` exists. Writing escape sequences to the terminal is perilous to begin with; what if your program gets ^C'd?
 
@@ -253,7 +255,7 @@ These typically require pump priming.
 ### Actually, if you send a file in an ancillary message over a `unix(7)` socket, it will be closed if it doesn't land.
 Still requires pump priming because messages can't be empty because the socket would have to be stdin to get the `read()` from a std process.
 
-## Why not `LD_PRELOAD`, or `strace`...?
+## Why not `LD_PRELOAD`, or `strace`, or...?
 Fragile and insane.
 
 ## Why not ask the kernel if the other process is trying to read?
@@ -263,6 +265,8 @@ AFAIK there's no way to do this. [TODO: eBPF? uring?]
 The goal of this line of questioning is to pursue a userspace-only solution:
 if you're going to change the kernel, the results ought to be worthwhile.
 If it's not directly targeting `1`, it's probably not sound, and `1` requires soundness.
+
+In any case, I don't know what that would be.
 
 ## Why not store a second pair of pipes in an environment variable?
 Couple problems with this.
@@ -283,7 +287,7 @@ Any atr-reader can read both pipes (the terminal is one), but a std one can't.
 Misordering writes is not a concern because an atr-packet can be modeled as a wonky
 terminal-escape-sequence-that-does-who-knows-what wormhole — this is not the case in a pipeline; order matters.
 
-
+<!--
 
 ...oh. Hmm! Okay that's interesting.
 wait fuck! Ahh! ahhh!
@@ -308,6 +312,7 @@ close stdpipe -> atrpipe remains open
     if both are atr we win
     if one is atr we win
 
+-->
 
 
 ## What about counting how many characters, and...
@@ -316,7 +321,7 @@ Bladder control.
 ## Why not do what the Plan9 terminal does
 Yeah, it's weird how running hundreds of regexes over every line output to your terminal isn't more popular.
 (...IIUC how that thing works. Someone please tell me what I'm talking about.)
-If people actually did that, it'd remove the primary value-add of `1`.
+If people actually did that, then... sure.
 
 ## Why not just use PowerShell, which already exists?
 It's better to sharpen the tools you already use. This is brownfield work.
@@ -375,7 +380,7 @@ I think you should respect the seniority and popularity of other software by let
 ## The semantic web is BS
 Data is useless if something doesn't use it.
 Some possible failures:
-1. Every consumer has its own markup; there are 30 different ways to specify a time.
+1. Every consumer has its own markup; there are 30 different ways to specify a timestamp.
 2. Producers and consumers are all in tiny cliques
 3. A bunch of annotating happens, but nothing uses it
 4. A bunch of consumers happen, but they're actually worthless, ... so nobody wastes effort making producers
@@ -406,8 +411,10 @@ It's obnoxious & audacious: what's not to love?
 
 # Porting my program...?
 ## Languages and libraries?
-C's got a reasonably good library (for C :P).
+C's got a reasonably good library (...for C :P).
 Rust's got a mediocre library.
+
+(Uh, but you shouldn't port your program because kernel stuff is still unimplemented.)
 
 ## What are some ways for me to fuck things up?
 * By introducing an inconsistency in output: `atr/my-program | atr/cat | std/cat` should be the same as `atr/my-program | std/cat` should be the same as `std/my-program`, for all invocations of `my-program`.
@@ -423,12 +430,12 @@ Intellisense for bash?
 
 Can the shell be made accessible to the masses?
 
-[FIXME: How is the shell supposed to actually see this data? Capturing stdout if there's a `--help` seems bad. Maybe there's a shell builtin, `study my-command --help`]
+[FIXME: How is the shell supposed to actually see this data? Capturing stdout just in case there's a `--help` seems bad. Maybe there's a shell builtin, `study my-command --help`]
 
 ## The Web
 If you don't find the open web to be offensive & bad, you must be new here.
 
-Explore the 1nternet with `netcat`!
+In the future, we can explore the 1nternet with `netcat`!
 
 ## Emacs
 (Note: I don't use emacs, nor do I know it very well.)
@@ -437,12 +444,14 @@ I would like for terminals to become sophisticated enough for their GUI frontend
 
 `ls --dired` would no longer need to be a thing, and any program could serve just as well.
 
-Some people want non-monospace text. It would be difficult.
+I think emacs supports not-monospace fonts. This would be difficult.
 
 ## Curses
 It's not very important, but… escape codes are kind of an ugly mess.
 They could stand to be rationalized by using attributes instead.
 This would be an opportunity to provide the sorts of events that a GUI program receives.
+
+[FIXME: Someone was working on stuff for getting X-style events to the kernel; who?]
 
 # Incompatibility Chart
 
@@ -470,4 +479,7 @@ This would be an opportunity to provide the sorts of events that a GUI program r
 
 # Other Work
 Arcan?
+
 [I know there's at least 2 other projects more similar to this one, but I forget their names.]
+
+tene's [Weaver](https://github.com/tene/weaver)
