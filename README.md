@@ -59,8 +59,8 @@ Your compiler can start emitting complex & useful error messages, like Rust does
 ## Objects in Output
 `ls -l` gives a nice table of stuff. What could we do with it?
 
-    $ ls -l FAQ.md
-    -rw-rw-r-- 1 poseidon poseidon 8375 Jan  6 11:26 FAQ.md
+    $ ls -l README.md
+    -rw-rw-r-- 1 poseidon poseidon 8375 Jan  6 11:26 README.md
 
 * Toggle RWX bits
 * Look up information about a user or group
@@ -71,6 +71,7 @@ Your compiler can start emitting complex & useful error messages, like Rust does
 # `1`? How?
 Every detail is totally up for grabs at this point.
 Here's a snapshot of the stack when I writing this.
+(Already it is out of date. I have determined that it can't readily be implemented via a kernel module.)
 
 ## Userspace Programs
 
