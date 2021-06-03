@@ -11,6 +11,10 @@ This project is still working on the proof-of-concept phase. There are many movi
 The most useful thing is that your terminal can have plugins that let you interact with your programs in a fluent way.
 It can also be used in pipelines.
 
+Here's a mockup of the sort of thing a completed `1` environment could do:
+
+![the output of ls from a remote host displayed in the terminal as icons in a file explorer](goals.png)
+
 ## Syntax Highlighting
 Syntax highlighting would no longer need to be your text editor's responsibility.
 `diff` can have syntax highlighting, and so can `cat`, and so can `grep`.
@@ -190,8 +194,6 @@ Ahem.
 
 The properties required are quite universal. It must work for *all* programs, *anywhere*.
 Maybe a mathematician could nicely model & explain wtf is going on here, but I wouldn't understand it.
-
-Skip this if you're not a kernel dev.
 
 ## What is this jargon?
 ### What is bladder control?
@@ -425,7 +427,7 @@ Can the shell be made accessible to the masses?
 ## The Web
 If you don't find the open web to be offensive & bad, you must be new here.
 
-Imagine browsing the internet with `cat`.
+Explore the 1nternet with `netcat`!
 
 ## Emacs
 (Note: I don't use emacs, nor do I know it very well.)
@@ -433,6 +435,8 @@ Imagine browsing the internet with `cat`.
 I would like for terminals to become sophisticated enough for their GUI frontend to no longer be needed.
 
 `ls --dired` would no longer need to be a thing, and any program could serve just as well.
+
+Some people want non-monospace text. It would be difficult.
 
 ## Curses
 It's not very important, but… escape codes are kind of an ugly mess.
@@ -463,3 +467,6 @@ This would be an opportunity to provide the sorts of events that a GUI program r
     * Ignore it: the std process might never start reading -- Ah! No! This is fine! Select is as good as a read for signalling purposes.
     * Signal on it: the std process will get a spurious wakeup. This is fine for epoll because it specifies that it can happen, but it might be bad for select().
 
+# Other Work
+Arcan?
+[I know there's at least 2 other projects, but I forget their names.]
