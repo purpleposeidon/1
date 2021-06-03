@@ -1,0 +1,25 @@
+l1-wrapping a tty just isn't going to work
+  - someone might write stuff from outside
+  - if we don't wrap stderr, stuff might leak from there
+  - echoing characters back; lots of stuff in the kernel; everything seems complicated
+
+So we'll do the budding strategy?
+... Mmm.
+
+Okay, let's do this...
+
+stdio goes to the tty
+environment variable specifies a pipe for ttyatrio
+
+So if it's a single program (like ssh), that program's gonna get two values from the variable.
+    L1_TTYATRIO=4,5
+And the front end of the pipe might get
+    L1_TTYATRIO=4,-1
+
+Let's actually call this a "frame". Programs no longer have to mingle their output, the shell can make it clean.
+
+FIXME: ssh would like to ask for more frames
+
+I think ultimately what we'd want is a way to go up to a tty FD and ask for a new frame fd to be created.
+Also, wall(1) can use this.
+

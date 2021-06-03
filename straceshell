@@ -1,0 +1,3 @@
+#!/bin/sh
+
+strace -e trace=fork,execve,write,read,wait4,close,open,openat,dup,ioctl,clone,pipe2,fcntl -f ./atrshell

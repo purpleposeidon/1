@@ -1,0 +1,41 @@
+(aside: arguments should also include a "program name" argument type for use in arg0 and maybe also sudo?)
+
+"1: turn your shell into a real IDE"
+
+
+ls over ssh still allows you to right click files
+any file mentioned anywhere could have an icon for its git status
+
+
+cat a file, it gets syntax highlighted
+grep -C has syntax highlighting as well
+you can click on a line of output in grep to jump to it in some text editor
+    - the editor could be in-line
+    - and it could be an inline vim editor
+    - and if it's already open somewhere, raise it
+        - raise print a 'raise me' escape cod...
+
+
+
+pull any command output into vi, after the fact
+
+this stuff could be done w/o a mouse
+
+
+stack traces jump to location
+
+mixed program output prefixed with a label [nah...? just use sed]
+output could have hyperlinks that link to other lines of output/anchors
+pull running process into a new terminal
+operate on output of command without running it again
+some kind of 'tee' thingie that you could use to show what the line is before it is processed and what it is after.
+    so it shows the entity before, entity after
+
+
+
+which terminal to mod?
+    - konsole. it's mine. it's in C++. likely hard to compile.
+    - alacritty. it's in rust.
+    - screen or tmux. it's common. probably c idk. kinda hate working with escape codes/curses tbh.
+    - neovim :terminal. probably lots of nice infrastructure to make escape codes not a thing to think about. would likely have to involve myself w/ vim source code.
++ should maximize the plugability of the solution. maybe there's like 1 separate program that gets fed events, and it redraws things on the terminal...

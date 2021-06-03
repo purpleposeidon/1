@@ -1,0 +1,36 @@
+
+tty-stdin  |  ls -l  | grep root   | tty-stdout
+
+ls
+    stdin
+    stdout
+    atrout
+    atrbud
+
+grep
+    stdin
+    stdout
+    atrin
+    atrbud
+
+
+
+So what grep must do is...
+    open /dev/1
+    pipe = mkfifo()
+    bud = ioctl(/dev/1, L1_BUD)
+    send_ancillary(bud, pipe.out)
+    close /dev/1
+    write everything to pipe.in
+
+And what the terminal must do is...
+    (and it has to be the terminal because the shell is busy)
+    create a unix socket setup to receive ancillary files
+    open /dev/1
+    ioctl(/dev/1, L1_BUD_MOTHER, socket.right)
+    spawn its process
+    poll/read from:
+        its pty end
+        socket.left for ancillary files
+        pipes received from the socket
+

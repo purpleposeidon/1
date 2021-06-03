@@ -1,0 +1,59 @@
+Howdy. I think it'd be swell if this:
+    ssh elsewhere 'ls /etc | grep conf | head -n 3'
+did something like this:
+    https://i.imgur.com/jHS1y7N.png
+For this to work, existing userspace programs would be modified to handle attributed packets instead of plain text. But there is the problem of backwards compatibility. Old programs might read new packets, and new programs might read old data.
+So packets must be filtered, wrapped, and unwrapped. This can't be implemented sanely & reliably in userspace... right?
+
+My plan for this is to create wrapper fds.
+Old programs write to stdout, and new ones to wrapped(stdout).
+
+
+
+
+
+
+When a new program reads old text, a header is added to make it a new packet.
+When an old program reads packets, it gets filtered per a flag, and only the payload is read.
+
+So packets will include a flag. When read from an old pipe, new data is filtered out.
+So the idea is that the packets include a flag, "is_std", 
+
+But it needs backwards compatibility. So some packets are "std"
+Existing programs would be modified to work with data packets instead of streams of text. But it needs backwards compatibility. Loong story short, the kernel needs to let both ends of stdin/stdout know that they speak to a consenting adult. (And there's no sane & reliable way to do this in userspace.)
+
+
+
+
+... So, my questions:
+Can a kernel module reasonably bring datagram packets to a pty?
+>> Just don't use datagrams. It might be nice, but it can also be put off for ABIv2.
+Is it okay to change the class of an arbitrary fd? What if I limit this to only pipes & ptys?
+
+
+
+The shell could help out by creating a special pipe-like file, but it'd be nicer to not have to touch the shell.
+>> We replace pipes. All pipes are now our pipes. So there's no question on this.
+
+
+
+The shell could create a special pipe-like 
+It'd be nice to not require cooperation from the shell. Meaning, the shell creates a standard pipeline. But how can my kernel module get a 'read/write attempt' message from this?
+
+
+is this something within the capabilities of a kernel module.
+    I would prefer it to be a module because saying "here, compile this kernel module to try out my project" is one hell of a stretch already.
+    "GO AHEAD, RECOMPILE YOUR KERNEL WITH THIS PATCH AND THEN REBOOT YOUR COMPUTER" is completely bonkers.
+    but maybe it really should just be a patch, and you can only use it in a vm :(
+
+is it okay to... to like modify the vtable of a fd
+how can I tell if a file has been written to
+
+can i do this in a generic way. like can i attach a 'this fd is used for sending packet stuff' to any random fd.
+how can I send a packet to a pty.
+what about ttys that aren't ptys
+
+is making the ptys speak datagrams as hard as I think it would be
+
+... maybe I should ditch packets. It'd be way easier to deal w/ len-header-packets. plus then batching writes is simpler.
+

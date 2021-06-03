@@ -1,0 +1,92 @@
+because we need to support both pipelines and ttys, we can't just substitute a unix datagram socket for the pipeline and add a rendezvous mechanism
+because multiple processes can be writing to a tty at once, we can't encode the packets inline, and therefor must use packets with the length encoded out-of-band
+because you might want to embed images, unix datagram sockets are also not great because they have a low max packet length.
+    It's fine. There'll be a 'continued' flag.
+    But maybe that's okay. An C API for receiving a 2MB packet might be kind of complicated.
+    ... But maybe that's okay. Allow it for real languages only.
+due to the `ls & ls` problem, reads must include a PID parameter... uhm. This is getting fairly nasty.
+    But the kernel could include it in `read` calls...
+
+
+struct Packet {
+    sender_pid: i32, // set by sender; errors out if incorrect?
+    sender_marker: i32, // for ssh/threads/multiplexing
+    // (pid, marker) are always reset when passing through a process; eg it's of cat in ssh|cat, not of ssh.
+    flags: u64 {
+        incomplete: bool, // if true, the next packet is appended to the same (pid, marker, type) pair
+        std_visible: bool, // does kernel filter or no?
+        std: bool, // this packet was synthesized from a std_write
+    },
+    packet_type: u8,
+    data: [u8],
+}
+
+
+
+there's a /dev/1?
+    you open it, then send an ioctl for "wrap this pipe in an fd"
+    uhm.... no. No? No.
+        Need to know if someone's trying to read from it
+
+what if the kernel just handled the conversion itself
+    atr_write -> atr_read
+    atr_write -> std_read
+    std_write -> atr_read
+    std_write -> std_read
+
+The kernel *does* use 
+    what. fucking hell what was I going to write here. :|
+
+The kernel tracks *no* state. Anyone can mix & match shit, and it'll just filter out/convert as necessary to satisfy the syscall.
+    But how does the kernel realize it needs to be setup in the first place?
+
+we need to make every pipe & pty be our guy
+
+
+
+Call 'atr_open' using an existing file.
+It's a wrapper. Reads & writes to this file involve...
+    looking at the other end. Is the other end wrapped in atr_open?
+    Mmm. It's like... how do we know that you're someone who's reading us?
+
+    [atr_write, std_write, std_read, atr_read]:
+        (atr_write, std_read)
+            wait for std_read
+            std_read ready
+        (atr_write, atr_read)
+        (std_write, std_read)
+            -> not my problem
+        (std_write, atr_read)
+    If the other end is not ready, wait for it to become ready?
+
+    write:
+        is there a pending std_read? drop hidden packets, write visible ones.
+
+isatty is just an ioctl -> forward the ioctl calls
+
+I need to look at pty more...?
+
+
+# Oh My God I Might Be Figuring This Out
+we do the wrapper fd thing
+needs to be a context-sensitive implementation. special code for pipes, special code for pty.
+files don't have state; we just depend on who's asking at the moment.
+
+## pipe
+when we atr-write to a pipe,
+we must put in an empty buffer. this prods any possible unwrapped reader into trying to read our buffer.
+and then we unattribute what was written
+
+when we std-write to a pipe...
+it gets written into the pipe's buffer
+and atr-read to reads it out
+
+what if there's a mixture of atr-write & std-write? order would be lost.
+null buffer as marker
+
+
+when we atr-read...
+look at the stdpipe's buffer. is there an empty entry? then pop a packet, and remove the buffer.
+otherwise it's a std-packet
+
+## pty

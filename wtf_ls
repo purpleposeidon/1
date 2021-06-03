@@ -1,0 +1,3 @@
+#!/bin/sh
+
+exec ls -l --color /proc/self/fd > /dev/stderr

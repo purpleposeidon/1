@@ -1,0 +1,24 @@
+[package]
+name = "lib1"
+version = "0.1.0"
+authors = ["neptunepink <purpleposeidon@gmail.com>"]
+edition = "2018"
+
+[lib]
+path = "lib1.rs"
+
+[[bin]]
+name = "hello-rs"
+path = "hello.rs"
+
+
+[[bin]]
+name = "deatr-rs"
+path = "deatr.rs"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+libc = "0.2" # FIXME: Use nix for everything here...
+nix = "0.18"
+l1_fmt = { path = "./l1_fmt" }

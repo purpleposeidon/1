@@ -1,0 +1,43 @@
+Hey, let's annotate arguments while we're at it.
+This can be suuuper simple, just an environment variable...
+Wait no it can't. Well maybe it can. Uhm.
+
+Environment variables get inherited.
+
+# Anyways. What types of arguments are there?
+
+/ Filepath
+" String
+- Switch
+? Unknown
+! command name [arg0; or something tab-completed from $PATH]
+
+So this info could always be put into a variable. "ARGUMENT_TYPES", say.
+But if a std program executes an atr program, that's trouble.
+
+Our environment variable could have a "bash_pid->ls_pid" header; so you can say "yeah we've got annotations" if that info is correct.
+... Furthermore, we could include the time? Enh. Enh. Mmm.
+Does linux have anything more reliable than a process ID? Like a UUID?
+Ah-ha! Here we go! We simply use a pipe! :D
+    (With a NO_CLOEXEC flaggy thingie)
+
+
+# End The Tyranny Of The vt100
+
+This is an opportunity to make some improvements to emulators.
+
+1. Escape codes are kind of shit. Just, like, the text of them. They could be rationalized, and they could also be made more human-readable in the style of HTML or bbcode.
+    (Maybe not, like "red", but "fg=ff0000".)
+2. We could expose more input events; so many as any GUI app might get.
+3. It might be nice to have fonts that aren't monospace.
+4. Possibly other features. "Make GUI Emacs redundant" might be a good goal.
+
+
+
+# ...
+Instead of -1 as a coreutils command switch, it could be --1. ls already has a -1 option... It would be annoying and stupid to have to know that different commands have different switches to enable lib1.
+idea: set -1 makes it so that pipes crash if used in wrapped mode...? maybe could have a "i allow mixed modes" deal?
+
+
+ATR_HIDDEN - like something that is stdvisible, but an atr terminal would not show...
+

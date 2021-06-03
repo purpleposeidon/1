@@ -1,0 +1,246 @@
+The exact same thing is written to stdout as usual.
+Each of stdin, stdout, and stderr is paired with an additional file descriptor: the annotation.
+
+STDIN=0 STDOUT=1 STDOUT=2
+ATRIN=3 ATROUT=4 ATRERR=5 ATRSYNC=6
+
+A program, such as ls, that uses lib1 writes the same the to stdout as it always does.
+In addition to this, an annotated copy is written to ATROUT.
+
+A program that uses lib1 does not write to stdout. Instead, it writes to antout.
+What is written is a superset of what would have been written to stdout.
+
+Programs that use lib1 write the exact same data to stdout/stderr.
+However! A copy is written also to ATROUT, in the annotated format.
+    [Unfortunately it must be a copy. Programs may not have as much control over their stdio as we might like. For example some environment variables might cause libraries to print out jank that would interfere with lib1 communication.]
+    [In the future when we know that the other end speaks lib1 we can dispense with the copy.]
+
+What should the ATR format be? It will be a binary format, using run-length encoding.
+
+
+    [We might not know how much data we're going to print. In this case, there's a "concatenated sequence". We write as large a chunk as we can manage.]
+
+
+# RENDEZVOUS
+The shell doesn't know if the programs it runs respect lib1. The writing program doesn't know if it respects lib1. The reading program doesn't know if it respects lib1.
+There's no "Hi I speak lib1" bit you can set on executable files, there's no ELF header flag, and even if there were it wouldn't work on shell scripts.
+Well there's actually a hole here: if LIB1 is set, we can assume that the shell can arrange a rendezvous with the other end of the pipe. Here's the protocol.
+
+1. If environment variable LIB1 is not set, then give up.
+2. Send a signal to the parent process.
+3. Send SIGSTOP to ourself.
+4. 
+
+
+So there's 3 states a [STD\*, ATR\*] pair can be in.
+ - We know we should use ATRIO
+ - We know we should use STDIO
+ - We don't know
+
+
+
+sigqueue
+SIGURG
+
+Send the shell `SIG_RT1`
+Shell sends `SIG_RT1` to someone
+Someone closes the corresponding STD file?
+
+
+You're dumb as a rock.
+    How do rocks respond to being poked?
+    - Who cares about rocks? Nobody pipes things to rocks.
+
+You're dumb as a cat.
+    How do cats respond to being poked?
+    They read from stdin, they ignore antin.
+
+
+We write to both stdout & antout.
+Eventually something's going to change.
+ - stdout pipe gets full
+    - other end is busy. wait for flush.
+ - antout pipe gets full
+    - [will antout always fill up before stdout?]
+    - [FIXME: ensure the size difference is okay]
+    - other end is busy
+    - lib1 rejected
+ - stdout is closed
+    - lib1 respected? continue writing to antout
+ - antout is closed
+    - lib1 rejected
+ - both closed
+    - time to die
+
+# RENDEZVOUS
+Ideally we'd just know that the other end of the pipe respects lib1. Unfortunately there is no knowing.
+The kernel could be modified to support something, to send us a signal when someone begins waiting/polling our pipe.
+
+Fork? Dude, hard core. But no. Not even thread!
+
+
+
+0: read from stdout
+1: some signal, read from stdout
+
+
+
+
+from the kernel:
+    wake_up_interruptible_sync_poll
+
+
+ptrace
+isatty
+fstat
+`MSG_EOR`
+
+    ioctl w/ SIOCINQ
+
+
+# I might actually have this!
+Right, so this is going to require a lib1-aware shell.
+We send *TWO ADDITIONAL* variants of stdio.
+ - `STDOUT`
+ - `ATROUT`
+ - `BACKFLOWOUT`
+
+`BACKFLOWOUT` is a `dup` of the *read end* of its `stdout`.
+Once the process has something to write, it writes 1 byte to both STDOUT and ATROUT.
+Then it waits. It polls, actually, it polls BACKFLOW. Once it says "nothing to read", we have our signal of ignorance.
+If during this time we receive a real time signal from our parent process the shell, we know that the other end has accepted.
+
+# Environment variable
+
+LIB1 is set to something.
+`in:0,3;out:1,4,7;err:2,5,8`
+The format of each entry is "name:std,ant,back", and it is separated by semicolons.
+
+Since stdin doesn't need backflow, it is `_`.
+
+# `lib` RENDEZVOUS
+
+There's a problem with our scheme. How do we know if the other end of the pipe should be spoken to using `lib1`?
+There's no way to put extra attributes on an executable file.
+There's also no way to put attributes on a pipe.
+There's also no guarantee that, even if an end is lib1, that they set off whatever-signalling-mechanism before we might look for it.
+
+This can be summarized as three trouble-makers, `cat`, `sleep`, and `s1ow`.
+
+`cat` is `cat0`. It doesn't know about lib1, it just reads from stdin & writes to stdout.
+`sleep` just sits around doing nothing.
+`s1ow` is does speak `lib1`, but it takes an awful long time to complete the handshake. (Also, any lib1 program can be `s1ow` if the system is thrashing.)
+
+There's no marker we can set, because `s1ow` might be too slow to set it and `cat` and `sleep` would never set it.
+We need some other way to distinguish between lib1 programs (including `s1ow`) and non-lib1 programs like `cat` and `sleep`.
+The only way we can do this is by observing their behavior.
+
+Unfortunately, sleep has no behavior to observe. So this means that we're forced to accept three states for a `lib1` pipe end: talking to std, talking ant, or not yet determined.
+
+There's three kinds of behavior to observe:
+1. You're taking to long. (`sleep`, `bin1/s1ow`) Saying "you have 3 seconds to answer me" is unacceptable. The effect of this possibility is to mean that we need a signalling mechanism for both "I speak lib1" and "I don't speak lib1".
+2. You're reading from my stdout instead of atrout, so you're not lib1. (`cat`)
+3. You signalled lib1. (`b1n/1s`)
+
+The easiest way to implement this is to write a kernel module that can signal us when `read` is called on one of our pipes.
+Wait a minute, that's not the easy solution, that's the *hard* solution! I don't know how to write a kernel module!
+This may be the best long-term solution, but requiring a kernel module just to run something isn't very good.
+Really wahtever we need from the kernel has to be in the kernel by default, and they're not going to add something that isn't shown to be worthwhile.
+
+Okay, so we want to know when read gets called. How about ptrace? Well. That would work, but, yikes, and also I'm pretty sure this would mean you couldn't attach gdb to a pipeline.
+Any library hackery, similarly a yikes.
+
+Well, there's a `SIGTTIN`. This sends SIGSTOP to processes that read from stdin while they are in the background.
+It has some potential, but maybe could be too hacky. It would break `isatty`, and might complicated the shell's background process handling logic.
+
+Solution: watch our own pipe to see if the other process is reading from it.
+
+Here's what happens.
+
+1. Your program starts to have some output to write.
+2. We write the first byte of the output to stdout, and some dummy output to atrout.
+3. The lib1-aware shell has prepared things for us. It has used `dup` to give us the end of our own stdout back to us, and it's stored it for us in the `LIB1` env var. This is called `backflow`.
+4. We call `select` on `backflowout`. This is all really just the opposite of what the polling ecosystem was designed for, so we must do this repeatedly with exponential increasing delay between calls. `select` will always be given a timeout of 0. If the trap hasn't sprung, timeout wouldn't help, and if it has, there's no point waiting around.
+5. If we receiv a realtime signal, we know we're talking to a friend
+
+
+
+
+
+In fact, there are 4 situations:
+
+| pair |              R0             |                      R1                      |
+|:----:|:---------------------------:|:--------------------------------------------:|
+|  W0  | Not lib1's problem          | you write a byte to stdout but not atrout    |
+|  W1  | I write 1 byte, you read it | I write 1 byte to both, you read from atrout |
+
+
+
+
+Well, first of all, we have some help from the shell. It sets a `LIB1` variable.
+
+
+
+Ancillary data. Send a pipe end. Write to it. If you closed the pipe, we get a write error! Which means you accept!
+
+
+# With kernel Module
+
+## Write End
+1. Close `ATR_SYNC`
+2. splice `/dev/alert_on_read` to `stdout`
+3. wait for `SIGIO` or w/e
+4. Recv from `stdout`; if we get a message, we're good.
+
+## Read End
+1. Read from `ATR_SYNC`. If it say `ye`, we're good...?
+1. Close `ATR_SYNC`.
+2. Recv from `stdin`
+
+
+
+
+# ...
+It'd be nice for lib1 to work w/o shell support.
+Then kernel should allow for upgrading existing pipes.
+OTOH, it could also be dangerous...
+
+
+Heeeey, soooo....
+You run `ls`. stdout is a tty. WTF happens!???
+How does `ls` know stdout isatty()?
+
+# ...
+Big problem for pty:
+
+   $ ssh host0 ls & ssh host1 ls &
+
+In other words, there can be an intermingling of reads & writes.
+    Maybe this would be a good situation for (std, atr) pairs.
+
+What if we just wrote to both pipes, and once one fills up, we wait for one of them to empty?
+    so pty prioritizes...
+        >>>!! Problem! ls1 & ls1 !!<<<
+    mmm.
+
+
+Okay, we in fact can handle pipe & pty separately. Here's how:
+pty is more of a special case. Eg, if you spin up konsole, it creates the pty.
+Since the emulator just has to have lib1 support for it to be of any help,
+it's not an additional burden for it to add another syscall.
+And lib1, yeah, it can of course do something else in the case of isatty.
+... Now, for the pipe...
+I think it might be good to look into changing the file in-place.
+FIXME: This breaks pipe_fcntl, but it's of little importance,
+and would be simple to resolve later given proof of general interest.
+
+Anyways. The ioctl on the pipe would do this:
+The pipe & its pair would be replaced with a wrapper that handles wrapping & unwrapping packets.
+...oh! Hey! And the ORIGINAL pipe is returned? :D
+Actually this could simplify things GREATLY!
+It simply moves the pipe to a new fd, and installs a converter on stdout!
+...argh! But this doesn't quite work! Someone else might still have the pipe...
+     But is this an unreasonable increase in standards?
+     Oh, no. We simply do the rename trick for *everyone* with the naked pipe!
+Detail: ioctl on an already diapered pipe must give the naked pipe
+Detail: f_lock might need to be acquired when changing file->f_flags

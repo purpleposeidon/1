@@ -1,0 +1,41 @@
+
+
+ls -l ⊢ map '[size > 100000] sizeλhuman name'
+
+
+Map is a filter.
+    It rewrites entities.
+    The stuff in brackets is a filter. If the predicate passes, then the entity isn't printed.
+    The λhuman is a service. There's two pipes named λhuman/w and λhuman/r.
+    The bit to the left, in this case the 'size' field, is written to λhuman/w, and substituted with what comes out of λhuman/r.
+
+#entity
+    refers to the entirety of the contents of the entity with the given label
+    this would print the first line of ls -l, because ls labels its entities starting from 0
+        ls -l ⊢ map '#0'
+$fieldname
+    refers to a field with that given name.
+    fields run from the fieldname packet until it reaches either an unclosed popentity packet or fieldname not enclosed in a sub-entity or to EOF
+:fieldname
+    type of field
+    has no output?
+=fieldname
+    value of field
+>fieldname
+    text of field
+@depth
+    special meta-field. @depth is 0 when no entity has started.
+
+
+$find_field_name~$replace_field_name
+    rename field
+[$fieldname]~[]
+
+
+[@depth = 1]
+
+
+We could make `map` a dynamically loaded bash builtin; see ~/tmp/bash-4.4.18/examples/loadables/
+How would that work?
+Probably not actually worthwhile.
+

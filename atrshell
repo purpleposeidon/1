@@ -1,0 +1,192 @@
+#!/usr/bin/python3
+
+L1_DEV_PATH       = "/dev/1"
+# See [L1_IOCTL_DEFS]
+L1_IOCTL_WRAP = 0x40043100;
+L1_IOCTL_UNWRAP = 0x3101;
+L1_STEM_FD = "LIB1_STEM_FD"
+#L1_IOCTL_MARK_STEM = 0x40043102;
+#L1_IOCTL_FIND_STEM = 0x3103;
+
+
+
+import os, sys, socket, time, pty, stat
+from fcntl import ioctl
+import fcntl
+
+
+has_module = os.path.exists(L1_DEV_PATH)
+if not has_module:
+    raise SystemExit("kernel module not loaded")
+    #print("WARNING: kernel module not loaded; forcing usage of attributes", file=sys.stderr)
+    #os.environ["FORCE_LIB1"] = ""
+
+def s2l(x):
+    if type(x) == str:
+        x = x.split(' ')
+        x[0] = os.path.expanduser(x[0])
+        return [x[0]] + x
+    return x
+
+def l2c(x):
+    x = [p for p in x.split(' ') if p]
+    arg0 = x[0]
+    if not arg0.startswith("./"):
+        for p in ["./"] + os.environ["PATH"].split(':'):
+            f = os.path.join(p, arg0)
+            if os.path.exists(f):
+                arg0 = f
+                break
+    return [arg0] + x
+
+def c2s(x):
+    if type(x) == str: return x
+    return ' '.join(x[1:])
+
+def nocloexec(fd):
+    flags = fcntl.fcntl(fd, fcntl.F_GETFD)
+    nuffn = fcntl.fcntl(fd, fcntl.F_SETFD, flags & ~fcntl.FD_CLOEXEC)
+    flags = fcntl.fcntl(fd, fcntl.F_GETFD)
+    assert (flags & fcntl.FD_CLOEXEC) == 0
+
+def fdbg(label):
+    pass
+    #print(label, file=sys.stderr)
+    #os.system("ls -l --color /proc/{}/fd > /dev/stderr".format(os.getpid()))
+
+def check(wrapped, naked):
+    pass
+    #target = ioctl(wrapped, L1_IOCTL_UNWRAP)
+    #assert os.readlink("/proc/self/fd/" + str(target)) == os.readlink("/proc/self/fd/" + str(naked)), "test unwrap failed"
+
+def run(*cmds):
+    def clip(c):
+        if type(c) == str: return c
+        return c[1:]
+    print("+ " + "  ⇃  ".join(c2s(c) for c in cmds), file=sys.stderr)
+    pipeline = []
+    all_fds = [pty.STDIN_FILENO, pty.STDOUT_FILENO, pty.STDERR_FILENO]
+    for _ in cmds[1:]:
+        (pipe_r, pipe_w) = os.pipe()
+        nocloexec(pipe_r)
+        nocloexec(pipe_w)
+        pipeline += [(pipe_r, pipe_w)]
+        all_fds += [pipe_r, pipe_w]
+
+    all_fds = set(all_fds)
+
+    pids = []
+    id2name = {}
+    a = [pty.STDIN_FILENO] + [p[0] for p in pipeline]
+    b = [p[1] for p in pipeline] + [pty.STDOUT_FILENO]
+    rw = list(zip(a, b))
+    for (cmd, (naked_r, naked_w)) in zip(cmds, rw):
+        #fdbg("...")
+        cmd = s2l(cmd)
+        pid = os.fork()
+        if pid == 0:
+            if has_module:
+                #fdbg("before")
+                if naked_r == pty.STDIN_FILENO: naked_r = os.dup(naked_r)
+                if naked_w == pty.STDOUT_FILENO: naked_w = os.dup(naked_w)
+                nocloexec(naked_r)
+                nocloexec(naked_w)
+                #fdbg("stdio saved")
+                os.close(pty.STDIN_FILENO)
+                os.close(pty.STDOUT_FILENO)
+                wrapped_r = os.open(L1_DEV_PATH, os.O_RDONLY)
+                wrapped_w = os.open(L1_DEV_PATH, os.O_WRONLY)
+                nocloexec(wrapped_r)
+                nocloexec(wrapped_w)
+                assert wrapped_r == pty.STDIN_FILENO
+                assert wrapped_w == pty.STDOUT_FILENO
+                #fdbg("laidout")
+                assert ioctl(wrapped_r, L1_IOCTL_WRAP, naked_r) == 0, "wrap failed"
+                assert ioctl(wrapped_w, L1_IOCTL_WRAP, naked_w) == 0, "wrap failed"
+                #print("F_GETFD =", fcntl.fcntl(wrapped_r, fcntl.F_GETFD), file=sys.stderr)
+                check(pty.STDIN_FILENO, naked_r)
+                check(pty.STDOUT_FILENO, naked_w)
+                # fd[0] = wrap  ( stdin  )
+                # fd[1] = wrap  ( stdout )
+                # fd[2] = naked ( stderr )
+                # fd[3] = naked ( stdin  )
+                # fd[4] = naked ( stdout )
+                account = [wrapped_r, wrapped_w, pty.STDERR_FILENO, naked_r, naked_w]
+            else:
+                if naked_r != pty.STDIN_FILENO:
+                    os.dup2(naked_r, pty.STDIN_FILENO)
+                if naked_w != pty.STDOUT_FILENO:
+                    os.dup2(naked_w, pty.STDOUT_FILENO)
+                account = [pty.STDIN_FILENO, pty.STDOUT_FILENO, pty.STDERR_FILENO]
+            nocloexec(pty.STDIN_FILENO)
+            nocloexec(pty.STDOUT_FILENO)
+            #nocloexec(pty.STDERR_FILENO)
+            for extra_fd in all_fds - set(account):
+                os.close(extra_fd)
+            #fdbg("fds for " + cmd[0])
+            os.execl(*cmd)
+            raise Exception("exec failed")
+        id2name[pid] = cmd[1]
+        pids += [pid]
+
+    for p in pipeline:
+        for f in p:
+            assert f > pty.STDERR_FILENO
+            os.close(f)
+
+    #fdbg("shell's got")
+    rets = {}
+    for _ in pids:
+        pid, exit = os.wait()
+        rets[pid] = exit
+        name = id2name.get(pid, "<unknown child>")
+        #print(f"> {name} ⮞ {exit}", file=sys.stderr);
+    for pid, exit in rets.items():
+        name = id2name.get(pid, "<unknown child>")
+        print(f"> {name} ⮞ {exit}", file=sys.stderr);
+
+
+#a = ['/bin/cat', 'cat']
+#b = ['/bin/sed', 'sed', 's/[aeiou]/_/g']
+
+os.system("cd ~/host/; make")
+#os.system("cd coreutils; make src/ls")
+#os.system("cd util1; cargo build")
+
+def sanity():
+    r, w = os.pipe()
+    wrapped_r = os.open(L1_DEV_PATH, os.O_RDONLY)
+    assert ioctl(wrapped_r, L1_IOCTL_WRAP, r) == 0
+    assert ioctl(wrapped_r, L1_IOCTL_UNWRAP) == r
+    #pid = os.fork()
+    assert ioctl(wrapped_r, L1_IOCTL_UNWRAP) == r
+
+    os.close(r)
+    os.close(w)
+    os.close(wrapped_r)
+
+#sanity()
+
+if len(sys.argv) == 1:
+    if os.getcwd() == "/media/sf_lib1":
+        run("hello", "deatr")
+    else:
+        run("~/host/hello", "~/host/deatr")
+
+    # FIXME: valgrind
+    #run("./ls ./smol/", "./deatr")
+    #run("./ls -l ./smol/", "./deatr")
+    #run("./ls -im ./smol/", "./deatr")
+    #run("./ls -lR ./smol/", "./deatr")
+    #run("./ls -lh /dev/null ./shell.py", "./deatr")
+    #run("./ls -lh /dev/null ./shell.py", "./deatr --std")
+    #run("./ls -ld /dev/null ./shell.py /dev/adsp /dev/block", "./deatr")
+    #run("./ls -l /", "./deatr")
+
+    #run("./ls -l /", "/usr/local/bin/valgrind ./map filename")
+    #run("./ls -l smol", "./deatr")
+    #run("./ls -l smol", "./util1/target/debug/util1 filename block_size", "./deatr")
+else:
+    line = ' '.join(sys.argv[1:]).split("⇃")
+    cmds = [l2c(c) for c in line]
+    run(*cmds)

@@ -1,0 +1,11 @@
+
+ls -l ⊢ sort1 mtime_s ⊢ map "group_name filename"
+
+
+ls -l ⊢ map "group_name filename"
+
+
+
+ls -l ⊢ down my_files
+up my_files ⊢ sort1 mtime_s
+
