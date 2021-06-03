@@ -470,4 +470,4 @@ This would be an opportunity to provide the sorts of events that a GUI program r
 
 # Other Work
 Arcan?
-[I know there's at least 2 other projects, but I forget their names.]
+[I know there's at least 2 other projects more similar to this one, but I forget their names.]
